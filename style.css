@@ -5,7 +5,6 @@ html {
 }
 * {
     font-family: "M PLUS Rounded 1c", sans-serif;
-    /* font-weight: 400; */
     font-style: normal;
 }
 body {
@@ -71,6 +70,9 @@ img {
     writing-mode: vertical-lr;
     margin: 0 auto;
     letter-spacing: 0.2rem;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
 }
 .scroll-line {
     position: absolute;
@@ -107,6 +109,7 @@ img {
     right: 8px;
     cursor: pointer;
     z-index: 2;
+    color: #23130d;
 }
 .nav {
     position: fixed;
