@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>Googleカレンダー連携カレンダー</title>
+<style>
+  body {
+    font-family: sans-serif;
+    padding: 20px;
+    max-width: 700px;
+    margin: auto;
+    background: #f0f0f0;
+  }
+  h1 {
+    text-align: center;
+  }
+  #calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .day-name {
+    font-weight: bold;
+    text-align: center;
+    padding: 8px 0;
+    background: #eee;
+    border-radius: 4px;
+  }
+  .date-cell {
+    min-height: 80px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 5px;
+    box-sizing: border-box;
+    position: relative;
+  }
+  .date-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  .event {
+    background: #4285F4;
+    color: white;
+    padding: 2px 5px;
+    font-size: 0.8em;
+    border-radius: 4px;
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<h1>Cafelamp</h1>
+
+<div id="calendar"></div>
+
+<script src="https://apis.google.com/js/api.js"></script>
+<script>
+  const API_KEY = 'AIzaSyDy7xzvMUBf-Qla78wmG_JQF2wcmTp3i5w';
+  const CALENDAR_ID = '56alsi8529df3d074c3474ddt4@group.calendar.google.com';
+
+  const daysOfWeek = ['日', '月', '火', '水', '木', '金', '土'];
+
+  // カレンダーの土台を作る（曜日ヘッダー＋日付セル）
+  function buildCalendar(year, month) {
+    const calendar = document.getElementById('calendar');
+    calendar.innerHTML = '';
+
+    // 曜日ヘッダー
+    for (const dayName of daysOfWeek) {
+      const div = document.createElement('div');
+      div.className = 'day-name';
+      div.textContent = dayName;
+      calendar.appendChild(div);
+    }
+
+    const firstDate = new Date(year, month, 1);
+    const lastDate = new Date(year, month + 1, 0);
+    const firstDay = firstDate.getDay(); // 曜日（0=日曜〜6=土曜）
+    const totalDays = lastDate.getDate();
+
+    // 空セル（前月の残り日）
+    for(let i=0; i<firstDay; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'date-cell';
+      calendar.appendChild(emptyCell);
+    }
+
+    // 日付セル
+    for(let day=1; day<=totalDays; day++) {
+      const dateCell = document.createElement('div');
+      dateCell.className = 'date-cell';
+      dateCell.dataset.date = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+
+      const dateNumber = document.createElement('div');
+      dateNumber.className = 'date-number';
+      dateNumber.textContent = day;
+      dateCell.appendChild(dateNumber);
+
+      calendar.appendChild(dateCell);
+    }
+  }
+
+  // イベントを日付セルに表示
+  function displayEvents(events) {
+    events.forEach(event => {
+      const startDateStr = event.start.date || event.start.dateTime.split('T')[0];
+      const cell = document.querySelector(`[data-date="${startDateStr}"]`);
+      if (cell) {
+        const eventEl = document.createElement('div');
+        eventEl.className = 'event';
+        eventEl.title = event.summary;
+        eventEl.textContent = event.summary.length > 15 ? event.summary.slice(0,15) + '…' : event.summary;
+        cell.appendChild(eventEl);
+      }
+    });
+  }
+
+  function loadEvents(year, month) {
+    gapi.client.init({ apiKey: API_KEY }).then(() => {
+      // 月の開始と終了をISO8601形式で
+      const timeMin = new Date(year, month, 1).toISOString();
+      const timeMax = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+      return gapi.client.request({
+        path: `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`,
+        params: {
+          timeMin,
+          timeMax,
+          singleEvents: true,
+          orderBy: 'startTime',
+          maxResults: 50
+        }
+      });
+    }).then(response => {
+      const events = response.result.items || [];
+      displayEvents(events);
+    }).catch(error => {
+      console.error('イベント取得エラー:', error);
+      alert('イベントの取得に失敗しました');
+    });
+  }
+
+  function init() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0スタート
+
+    buildCalendar(year, month);
+    gapi.load('client', () => loadEvents(year, month));
+  }
+
+  window.onload = init;
+</script>
+
+</body>
+</html>
